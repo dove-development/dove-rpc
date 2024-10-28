@@ -2,8 +2,6 @@ package src
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
@@ -57,23 +55,6 @@ func (r *Rpc) updateProviders() error {
 	return nil
 }
 
-func randomU64() uint64 {
-	var provider_index [8]byte
-	_, err := rand.Read(provider_index[:])
-	if err != nil {
-		panic(err)
-	}
-	return binary.LittleEndian.Uint64(provider_index[:])
-}
-
-func verifyJson(b []byte) error {
-	var j any
-	if err := json.Unmarshal(b, &j); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (r *Rpc) Call(request []byte) (string, error) {
 	err := r.updateProviders()
 	if err != nil {
@@ -84,12 +65,12 @@ func (r *Rpc) Call(request []byte) (string, error) {
 		return "", errors.New("no providers")
 	}
 
-	err = verifyJson(request)
+	err = VerifyJson(request)
 	if err != nil {
 		return "", err
 	}
 
-	provider := r.providers[randomU64()%uint64(len(r.providers))]
+	provider := r.providers[RandomU64()%uint64(len(r.providers))]
 	req, err := http.NewRequest("POST", provider.Url, bytes.NewBuffer(request))
 	if err != nil {
 		return "", err
@@ -112,7 +93,7 @@ func (r *Rpc) Call(request []byte) (string, error) {
 		return "", err
 	}
 
-	err = verifyJson(body)
+	err = VerifyJson(body)
 	if err != nil {
 		return "", err
 	}

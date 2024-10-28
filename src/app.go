@@ -6,8 +6,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -16,7 +18,7 @@ const (
 	RPC_PROVIDERS   = "./priv/providers.json"
 	RL_MAX_REQUESTS = 60
 	RL_WINDOW_SECS  = 60
-	ALLOWED_ORIGIN  = "https://dove.money"
+	ALLOWED_ORIGIN  = "dove.money"
 )
 
 func sendJson(w http.ResponseWriter, v any) {
@@ -24,7 +26,6 @@ func sendJson(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
 }
-
 func onRpc(rl *Ratelimit, rpc *Rpc, w http.ResponseWriter, r *http.Request) {
 	if !rl.Allow(r) {
 		sendJson(w, ErrorResponse{
@@ -39,16 +40,25 @@ func onRpc(rl *Ratelimit, rpc *Rpc, w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	res, err := rpc.Call(body)
-	if err != nil {
-		sendJson(w, ErrorResponse{
-			Error: err.Error(),
-		})
-		return
+
+	var lastErr error
+	for i := 0; i < 3; i++ {
+		res, err := rpc.Call(body)
+		if err == nil {
+			w.WriteHeader(200)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, res)
+			return
+		}
+		lastErr = err
+		if i < 2 {
+			time.Sleep(time.Duration(250+RandomU64()%750) * time.Millisecond)
+		}
 	}
-	w.WriteHeader(200)
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, res)
+
+	sendJson(w, ErrorResponse{
+		Error: lastErr.Error(),
+	})
 }
 
 func App() {
@@ -62,7 +72,8 @@ func App() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if ALLOWED_ORIGIN != "" {
 			origin := strings.TrimSpace(r.Header.Get("Origin"))
-			if origin != ALLOWED_ORIGIN {
+			originUrl, err := url.Parse(origin)
+			if err != nil || originUrl.Host != ALLOWED_ORIGIN {
 				sendJson(w, ErrorResponse{
 					Error: "Invalid origin",
 				})

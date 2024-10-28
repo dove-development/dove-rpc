@@ -3,6 +3,7 @@ package src
 import (
 	"net"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -11,6 +12,7 @@ type Ratelimit struct {
 	window_secs  int
 	window_start time.Time
 	requests     map[string]int
+	mu           sync.Mutex
 }
 
 func RatelimitNew(max_requests int, window_secs int) Ratelimit {
@@ -23,6 +25,9 @@ func RatelimitNew(max_requests int, window_secs int) Ratelimit {
 }
 
 func (rl *Ratelimit) Allow(r *http.Request) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
 	ip := r.Header.Get("CF-Connecting-IP")
 	if ip == "" {
 		ip = r.Header.Get("X-Forwarded-For")
