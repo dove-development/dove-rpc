@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -15,6 +16,7 @@ const (
 	RPC_PROVIDERS   = "./priv/providers.json"
 	RL_MAX_REQUESTS = 60
 	RL_WINDOW_SECS  = 60
+	ALLOWED_ORIGIN  = "https://dove.money"
 )
 
 func sendJson(w http.ResponseWriter, v any) {
@@ -58,6 +60,14 @@ func App() {
 	rl := RatelimitNew(RL_MAX_REQUESTS, RL_WINDOW_SECS)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		origin := strings.TrimSpace(r.Header.Get("Origin"))
+		if origin != ALLOWED_ORIGIN {
+			sendJson(w, ErrorResponse{
+				Error: "Invalid origin",
+			})
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
 		onRpc(&rl, &rpc, w, r)
 	})
 
