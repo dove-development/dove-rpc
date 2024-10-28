@@ -74,13 +74,31 @@ func App() {
 			origin := strings.TrimSpace(r.Header.Get("Origin"))
 			originUrl, err := url.Parse(origin)
 			if err != nil || originUrl.Host != ALLOWED_ORIGIN {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
 				sendJson(w, ErrorResponse{
 					Error: "Invalid origin",
 				})
 				return
 			}
-			w.Header().Set("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
+			w.Header().Set("Access-Control-Allow-Origin", "https://"+ALLOWED_ORIGIN)
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 		}
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		if r.Method != "POST" {
+			sendJson(w, ErrorResponse{
+				Error: "Method not allowed",
+			})
+			return
+		}
+
 		onRpc(&rl, &rpc, w, r)
 	})
 
