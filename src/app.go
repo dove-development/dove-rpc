@@ -16,7 +16,7 @@ const (
 	HOST            = "127.0.0.1"
 	PORT            = 22163
 	RPC_PROVIDERS   = "./priv/providers.json"
-	RL_MAX_REQUESTS = 60
+	RL_MAX_REQUESTS = 120
 	RL_WINDOW_SECS  = 60
 	ALLOWED_ORIGIN  = "dove.money"
 )
