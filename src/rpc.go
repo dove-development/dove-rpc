@@ -57,13 +57,21 @@ func (r *Rpc) updateProviders() error {
 	return nil
 }
 
-func RandomU64() uint64 {
+func randomU64() uint64 {
 	var provider_index [8]byte
 	_, err := rand.Read(provider_index[:])
 	if err != nil {
 		panic(err)
 	}
 	return binary.LittleEndian.Uint64(provider_index[:])
+}
+
+func verifyJson(b []byte) error {
+	var j any
+	if err := json.Unmarshal(b, &j); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *Rpc) Call(request []byte) (string, error) {
@@ -76,18 +84,13 @@ func (r *Rpc) Call(request []byte) (string, error) {
 		return "", errors.New("no providers")
 	}
 
-	var req_json any
-	if err := json.Unmarshal(request, &req_json); err != nil {
-		return "", err
-	}
-
-	json_str, err := json.Marshal(req_json)
+	err = verifyJson(request)
 	if err != nil {
 		return "", err
 	}
 
-	provider := r.providers[RandomU64()%uint64(len(r.providers))]
-	req, err := http.NewRequest("POST", provider.Url, bytes.NewBuffer(json_str))
+	provider := r.providers[randomU64()%uint64(len(r.providers))]
+	req, err := http.NewRequest("POST", provider.Url, bytes.NewBuffer(request))
 	if err != nil {
 		return "", err
 	}
@@ -109,15 +112,10 @@ func (r *Rpc) Call(request []byte) (string, error) {
 		return "", err
 	}
 
-	var resp_json map[string]any
-	if err := json.Unmarshal(body, &resp_json); err != nil {
-		return "", err
-	}
-
-	resp_str, err := json.Marshal(resp_json)
+	err = verifyJson(body)
 	if err != nil {
 		return "", err
 	}
 
-	return string(resp_str), nil
+	return string(body), nil
 }
