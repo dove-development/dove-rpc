@@ -28,16 +28,12 @@ func sendJson(w http.ResponseWriter, v any) {
 }
 func onRpc(rl *Ratelimit, rpc *Rpc, w http.ResponseWriter, r *http.Request) {
 	if !rl.Allow(r) {
-		sendJson(w, ErrorResponse{
-			Error: "Too many requests",
-		})
+		sendJson(w, ErrorResponseNew("Too many requests"))
 		return
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		sendJson(w, ErrorResponse{
-			Error: err.Error(),
-		})
+		sendJson(w, ErrorResponseNew(err.Error()))
 		return
 	}
 
@@ -56,9 +52,7 @@ func onRpc(rl *Ratelimit, rpc *Rpc, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	sendJson(w, ErrorResponse{
-		Error: lastErr.Error(),
-	})
+	sendJson(w, ErrorResponseNew(lastErr.Error()))
 }
 
 func App() {
@@ -74,9 +68,7 @@ func App() {
 			origin := strings.TrimSpace(r.Header.Get("Origin"))
 			originUrl, err := url.Parse(origin)
 			if err != nil || originUrl.Host != ALLOWED_ORIGIN {
-				sendJson(w, ErrorResponse{
-					Error: "Invalid origin",
-				})
+				sendJson(w, ErrorResponseNew("Invalid origin"))
 				return
 			}
 			w.Header().Set("Access-Control-Allow-Origin", "https://"+ALLOWED_ORIGIN)
@@ -94,9 +86,7 @@ func App() {
 		}
 
 		if r.Method != "POST" {
-			sendJson(w, ErrorResponse{
-				Error: "Method not allowed",
-			})
+			sendJson(w, ErrorResponseNew("Method not allowed"))
 			return
 		}
 
