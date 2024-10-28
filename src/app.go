@@ -60,14 +60,16 @@ func App() {
 	rl := RatelimitNew(RL_MAX_REQUESTS, RL_WINDOW_SECS)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		origin := strings.TrimSpace(r.Header.Get("Origin"))
-		if origin != ALLOWED_ORIGIN {
-			sendJson(w, ErrorResponse{
-				Error: "Invalid origin",
-			})
-			return
+		if ALLOWED_ORIGIN != "" {
+			origin := strings.TrimSpace(r.Header.Get("Origin"))
+			if origin != ALLOWED_ORIGIN {
+				sendJson(w, ErrorResponse{
+					Error: "Invalid origin",
+				})
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
 		}
-		w.Header().Set("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
 		onRpc(&rl, &rpc, w, r)
 	})
 
