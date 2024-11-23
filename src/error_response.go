@@ -6,10 +6,10 @@ type ErrorResponse struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
 	} `json:"error"`
-	Id interface{} `json:"id"`
+	Id any `json:"id"`
 }
 
-func ErrorResponseNew(e string) ErrorResponse {
+func ErrorResponseNew(e string, id any) ErrorResponse {
 	return ErrorResponse{
 		JsonRpc: "2.0",
 		Error: struct {
@@ -19,6 +19,6 @@ func ErrorResponseNew(e string) ErrorResponse {
 			Code:    -32000,
 			Message: e,
 		},
-		Id: nil,
+		Id: id,
 	}
 }

@@ -1,45 +1,36 @@
 package src
 
 import (
-	"net"
-	"net/http"
 	"sync"
 	"time"
 )
 
 type Ratelimit struct {
-	max_requests int
-	window_secs  int
+	max_requests uint32
+	window_secs  uint32
 	window_start time.Time
-	requests     map[string]int
+	requests     map[string]uint32
 	mu           sync.Mutex
 }
 
-func RatelimitNew(max_requests int, window_secs int) Ratelimit {
+func RatelimitNew(max_requests uint32, window_secs uint32) Ratelimit {
 	return Ratelimit{
 		max_requests: max_requests,
 		window_secs:  window_secs,
 		window_start: time.Now(),
-		requests:     make(map[string]int),
+		requests:     make(map[string]uint32),
 	}
 }
 
-func (rl *Ratelimit) Allow(r *http.Request) bool {
+func (rl *Ratelimit) Allow(ip string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	ip := r.Header.Get("CF-Connecting-IP")
-	if ip == "" {
-		ip = r.Header.Get("X-Forwarded-For")
-	}
-	if ip == "" {
-		ip, _, _ = net.SplitHostPort(r.RemoteAddr)
-	}
 	now := time.Now()
 
 	if now.Sub(rl.window_start) > time.Duration(rl.window_secs)*time.Second {
 		rl.window_start = now
-		rl.requests = make(map[string]int)
+		rl.requests = make(map[string]uint32)
 	}
 
 	rl.requests[ip]++
